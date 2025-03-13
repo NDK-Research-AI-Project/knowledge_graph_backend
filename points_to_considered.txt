@@ -1,0 +1,6 @@
+is document_ids are retrieved while retrieving context?
+
+query_text = "Tell me about Aurora Conference"
+context, document_ids = graph_retriever(query_text)
+print(context)
+

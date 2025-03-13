@@ -1,0 +1,15 @@
+langchain-core
+pydantic
+langchain-community
+langchain-experimental
+neo4j
+yfiles-jupyter-graphs
+python-dotenv
+pymupdf
+deepinfra
+paddleocr
+paddlepaddle
+langchain-groq
+flask
+PyPDF2
+spacy
