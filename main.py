@@ -99,13 +99,13 @@ except Exception as e:
 def process_document():
     if 'file' not in request.files:
         logger.info({"error": "No file part"})
-        return jsonify({"error": "No file part"}), 400
+        return jsonify({"message": "No file part"}), 400
 
     file = request.files['file']
 
     if file.filename == '':
         logger.info({"error": "No selected file"})
-        return jsonify({"error": "No selected file"}), 400
+        return jsonify({"message": "No selected file"}), 400
 
     try:
         # Read PDF bytes
@@ -118,12 +118,10 @@ def process_document():
         # Check if document has been uploaded before
         existing_document = mongo_collection.find_one({"hash": document_hash})
         if existing_document:
-            logger.info({"message": "Document already uploaded"})
+            logger.info({"error": "Document already uploaded"})
             return jsonify({
-                "message": "Document already uploaded",
-                "success": False, 
-                "document_id": str(existing_document["_id"])
-            }), 200
+                "message": "Upload failed, Document already uploaded"
+            }), 409  # HTTP 409 Conflict
 
         # Create a BytesIO object for PDF processing
         pdf_file = io.BytesIO(pdf_bytes)
@@ -152,14 +150,13 @@ def process_document():
 
         logger.info({"message": "File and metadata uploaded successfully"})
         return jsonify({
-            "message": "File and metadata uploaded successfully", 
-            "success": True, 
+            "message": "File uploaded successfully", 
             "documentId": str(document_id)
         }), 200
 
     except Exception as e:
         logger.error({"error": str(e)})
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"message": str(e) }), 500
 
 
 
