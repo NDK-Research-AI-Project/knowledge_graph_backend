@@ -12,4 +12,4 @@ paddlepaddle
 langchain-groq
 flask
 PyPDF2
-spacy
+flask-cors
