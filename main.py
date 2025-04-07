@@ -131,19 +131,19 @@ def process_document():
         
         metadata = {
             "filename": secure_filename(file.filename),
-            "number_of_pages": len(pdf_reader.pages),
+            "numberOfPages": len(pdf_reader.pages),
             "hash": document_hash,
-            "file_size": len(pdf_bytes),
-            "file_type": file.content_type,
-            "upload_date": datetime.now()
+            "fileSize": len(pdf_bytes),
+            "fileType": file.content_type,
+            "uploadDate": datetime.now()
         }
 
         # Upload PDF to Azure Blob Storage using a unique filename to prevent collisions
         blob_name = f"{document_hash}_{secure_filename(file.filename)}"
         blob_client = container_client.get_blob_client(blob_name)
         blob_client.upload_blob(pdf_bytes, overwrite=True)
-        metadata["azure_blob_url"] = blob_client.url
-        metadata["azure_blob_name"] = blob_name
+        metadata["azureBlobUrl"] = blob_client.url
+        metadata["azureBlobName"] = blob_name
 
         # Upload metadata to MongoDB
         document_id = mongo_collection.insert_one(metadata).inserted_id
@@ -158,6 +158,42 @@ def process_document():
         logger.error({"error": str(e)})
         return jsonify({"message": str(e) }), 500
 
+
+@app.route('/api/documents', methods=['GET'])
+def get_all_documents():
+    try:
+        # Retrieve all documents from MongoDB
+        documents = list(mongo_collection.find({}, {'_id': 1, 'filename': 1, 'numberOfPages': 1, 
+                                                'fileSize': 1,'fileType':1, 'uploadDate': 1, 
+                                                'azureBlobUrl': 1, 'azureBlobName': 1}))
+        
+        # Check if documents are available
+        if not documents:
+            logger.info({"message": "No documents found in the database"})
+            return jsonify({
+                "message": "No documents available",
+            }), 404  # Not Found status code
+        
+        # Format documents for JSON response
+        formatted_documents = []
+        for doc in documents:
+            # Convert MongoDB ObjectId to string
+            doc['_id'] = str(doc['_id'])
+            # Convert datetime to string
+            if 'uploadDate' in doc and isinstance(doc['uploadDate'], datetime):
+                doc['uploadDate'] = doc['uploadDate'].isoformat()
+                
+            # Add download URL
+            doc['downloadUrl'] = doc['azureBlobUrl']
+            
+            formatted_documents.append(doc)
+            
+        logger.info({"message": f"Retrieved {len(formatted_documents)} documents"})
+        return jsonify({"documents": formatted_documents}), 200
+    
+    except Exception as e:
+        logger.error({"error": f"Error retrieving documents: {str(e)}"})
+        return jsonify({"message": f"Error retrieving documents: {str(e)}"}), 500
 
 
 @app.route('/api/knowledge-graph/query', methods=['POST'])
@@ -174,6 +210,9 @@ def get_answer():
         return jsonify({"answer": str(answer)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
