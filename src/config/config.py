@@ -28,26 +28,27 @@ class Config:
         self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
         self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
-        
+
         self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
+
         Context: {context}
 
-        Glossary (for understanding and referring to same meanings only, not for direct inclusion in the answer): {glossary}
+        Glossary (use for understanding terms in the question and context, not for direct inclusion in the answer): 
+        {glossary}
 
         Question: {question}
 
-        Follow these instructions when when giving the response:
-
-        1. Use the glossary definitions to understand the unknown terms in context and question.
-        2. Do not include the glossary definitions directly in your answer.
-        3. If the glossary is empty or does not contain relevant definitions for words you don't know in question, ignore it..
-        4. do not answer the question using your general knowledge.
-        5. If the question is not clear even after considering the glossary definitions, respond with: "I'm sorry, I didn't understand your question. Could you please rephrase it?"
-        6. Provide only the response, do not explain about how you get the answer
-        7. no need to add everything in the context to the response. just get the required infurmation only. sometimes context will include additional informations which is not relevent to the final answer
+        Instructions:
+        1. Use glossary definitions to infer the meanings of terms used in the question and context.
+        2. Do not copy glossary definitions directly into the answer.
+        3. If the glossary is empty or irrelevant, ignore it.
+        4. Do not answer based on your own general knowledge—only use the provided context and glossary.
+        5. If the question is unclear even after applying glossary info, say: "I'm sorry, I didn't understand your question. Could you please rephrase it?"
+        6. Give a direct answer only—no explanations of reasoning.
+        7. Use only necessary info from context—ignore unrelated parts.
 
         Answer:""")
-        
+
         # Logging configuration
         self.logging_config = {
             'logstash_host': os.getenv('LOGSTASH_HOST', 'localhost'),
@@ -59,4 +60,10 @@ class Config:
         # LLM configurations
         self.groq_model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
         # self.groq_temperature = os.getenv("GROQ_TEMPERATURE", "0")
+
+
+        # MongoDB
+        self.mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        self.mongo_glossary_db = os.getenv("GlossaryDB", "GlossaryDB")
+        self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary-collection")
     

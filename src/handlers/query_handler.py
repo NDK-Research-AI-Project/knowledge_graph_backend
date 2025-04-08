@@ -1,6 +1,5 @@
+from langchain_core.prompts import ChatPromptTemplate
 from neo4j import GraphDatabase
-from spacy import load as spacy_load
-import spacy
 from langchain_community.graphs import Neo4jGraph
 from neo4j import GraphDatabase
 from langchain_groq import ChatGroq
@@ -37,12 +36,11 @@ class QueryHandler:
             self.logger.error("Error connecting to neo4j database")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
         
-        # Load the SpaCy NLP model for named entity recognition
-        self.nlp = spacy.load("en_core_web_sm")
+        # # Load the SpaCy NLP model for named entity recognition
+        # self.nlp = spacy.load("en_core_web_sm")
         # Load the DeepInfra API token for the LLM
         self.deepinfra_api_token = config.deepinfra_api_token
         self.groq_api_key = config.groq_api_key
-        
         self.groq_model = config.groq_model
         
         self.llm_groq = ChatGroq(
@@ -51,10 +49,22 @@ class QueryHandler:
             temperature=0,
             max_tokens=None
         )
+
+        # Define the entity extraction prompt
+        self.entity_extraction_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert at extracting key entities from text. 
+                    Extract all important entities (like names, organizations, locations, technical terms, etc.) from the given text.
+                    Return only the entities as a comma-separated list. Do not include explanations or labels.
+                    Example input: "What projects did John Smith work on at Microsoft in Seattle?"
+                    Example output: John Smith, Microsoft, Seattle"""),
+            ("user", "{text}")
+        ])
         
         
     def retrieve_context_from_kg(self, question):
-        entities = [ent[0] for ent in self.extract_entities(question)]
+        # entities = [ent[0] for ent in self.extract_entities(question)]
+        entities = self.extract_entities(question)
+
         if not entities:
             return "No entities found in the question."
             
@@ -87,7 +97,25 @@ class QueryHandler:
             
         return result
         
+    # def extract_entities(self, text):
+    #     doc = self.nlp(text)  # Fixed typo here
+    #     return [(ent.text, ent.label_) for ent in doc.ents]
+    #
+
     def extract_entities(self, text):
-        doc = self.nlp(text)  # Fixed typo here
-        return [(ent.text, ent.label_) for ent in doc.ents]
-        
+        try:
+            # Create the chain for entity extraction
+            chain = self.entity_extraction_prompt | self.llm_groq
+
+            # Get entities from LLM
+            result = chain.invoke({"text": text})
+
+            # Split the comma-separated response and clean up whitespace
+            entities = [entity.strip() for entity in result.content.split(",") if entity.strip()]
+
+            self.logger.info(f"Extracted entities: {entities}")
+            return entities
+
+        except Exception as e:
+            self.logger.error(f"Error extracting entities: {e}")
+            return []

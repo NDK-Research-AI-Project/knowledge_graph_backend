@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
+
+from src.handlers import glossary_handler
+from src.handlers.glossary_handler import GlossaryHandler
 from src.handlers.knowledge_graph_handler import KnowledgeGraphHandler
 from src.generators.answer_generator import AnswerGenerator
-import tempfile
-import os
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -10,7 +11,7 @@ from src.config.logging_config import setup_logging
 config = Config()
 logger = setup_logging(config.logging_config)
 answer_generator = AnswerGenerator(config, logger)
-
+glossary_handler = GlossaryHandler(logger)
 
 app = Flask(__name__)
 # Initialize the KnowledgeGraphHandler
@@ -69,6 +70,33 @@ def get_answer():
         return jsonify({"answer": str(answer)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+# New endpoint: add glossary items
+@app.route('/api/glossary/add', methods=['POST'])
+def add_glossary():
+    data = request.get_json()
+    if not isinstance(data, list):
+        return jsonify({"error": "Expected a list of glossary items."}), 400
+    try:
+        result = glossary_handler.add_glossary_items(data)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error adding glossary items: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# New endpoint: get all glossary items
+@app.route('/api/glossary/list', methods=['GET'])
+def list_glossary():
+    try:
+        items = glossary_handler.get_all_glossary_items()
+        return jsonify(items), 200
+    except Exception as e:
+        logger.error(f"Error retrieving glossary items: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)

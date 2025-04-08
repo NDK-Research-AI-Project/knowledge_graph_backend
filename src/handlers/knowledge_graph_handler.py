@@ -1,7 +1,6 @@
 import os
 import hashlib
 import pickle
-import spacy
 import io
 import fitz
 from langchain_core.runnables import RunnablePassthrough
@@ -45,7 +44,7 @@ class KnowledgeGraphHandler:
             self.neo4j_uri,
             auth=(self.neo4j_username, self.neo4j_password))
             
-            graph = Neo4jGraph(
+            self.graph = Neo4jGraph(
                 url=self.neo4j_uri,
                 username=self.neo4j_username,
                 password=self.neo4j_password
@@ -56,13 +55,13 @@ class KnowledgeGraphHandler:
         except Exception as e:
             self.logger.error("Error connecting to neo4j database")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
-        
-        # Load the SpaCy NLP model for named entity recognition
-        self.nlp = spacy.load("en_core_web_sm")
+
+        # Initialize OCR
+        self.ocr = PaddleOCR(use_angle_cls=True, lang="en")
+
         # Load the DeepInfra API token for the LLM
         self.deepinfra_api_token = config.deepinfra_api_token
         self.groq_api_key = config.groq_api_key
-        
         self.groq_model = config.groq_model
         
         self.llm_groq = ChatGroq(
@@ -71,9 +70,13 @@ class KnowledgeGraphHandler:
             temperature=0,
             max_tokens=None
         )
+
+        # Initialize LLM Tranformer
+        self.llm_transformer = LLMGraphTransformer(llm=self.llm_groq)
         
         
     def process_document(self, pdf_content):
+        """Process a PDF document and create a knowledge graph."""
         extracted_text = ""
         
         # First try normal pdf text extraction
@@ -93,7 +96,7 @@ class KnowledgeGraphHandler:
         
         # split the extracted text into chunks
         chunks = self.split_text_into_chunks(extracted_text)
-        logger.info("Successfully splitted into chunks")
+        logger.info("Successfully split into chunks")
         
         self.create_knowledge_graph(chunks)
         logger.info("Successfully created knowledge graph")
@@ -101,7 +104,6 @@ class KnowledgeGraphHandler:
     def extracted_text_using_ocr(self, pdf_content):
         """Extract text from a PDF using PaddleOCR for all pages."""
         extracted_text = []
-        ocr = PaddleOCR(use_angle_cls=True)  # Initialize PaddleOCR
 
         # Open the PDF from bytes
         pdf_document = fitz.open("pdf", pdf_content)
@@ -115,12 +117,18 @@ class KnowledgeGraphHandler:
             img_data = pix.tobytes("png")  # Convert to PNG byte format for OCR
 
             # Perform OCR on the image
-            results = ocr.ocr(img_data, cls=True)  # OCR with PaddleOCR
+            results = self.ocr.ocr(img_data, cls=True)  # OCR with PaddleOCR
             page_text = ""
-            for line in results[0]:
-                page_text += f"{line[1][0]}\n"  # Extract text from OCR results
-            extracted_text.append(page_text)
+            # for line in results[0]:
+            #     page_text += f"{line[1][0]}\n"  # Extract text from OCR results
+            # extracted_text.append(page_text)
 
+            if results[0]:
+                for line in results[0]:
+                    page_text += f"{line[1][0]}\n"
+                extracted_text.append(page_text)
+
+        pdf_document.close()
         return "\n".join(extracted_text)
             
         
@@ -135,25 +143,24 @@ class KnowledgeGraphHandler:
         return chunks
     
     def create_knowledge_graph(self, chunks):
-        # set the LLM transformer
-        llm_transformer = LLMGraphTransformer(llm=self.llm_groq)
-        
         # generate graph documents using LLM
-        graph_documents = llm_transformer.convert_to_graph_documents(chunks)
+        graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
         
-        logger.info(f"Graph document: {graph_documents[0]}")
+        self.logger.info(f"Graph document: {graph_documents[0]}")
         
         self.save_to_graph(graph_documents)
         
-        logger.info("Graph document has been processed and saved to the knowledge graph.")
+        self.logger.info("Graph document has been processed and saved to the knowledge graph.")
         
         self.create_fulltext_index()
         
         
     # Save the graph documents into the Neo4j knowledge graph
     def save_to_graph(self, graph_documents):
+        """Save the graph documents into the Neo4j knowledge graph."""
         with self.driver.session() as session:
             for graph_document in graph_documents:
+                # Create nodes
                 for node in graph_document.nodes:
                     session.run(
                         """
@@ -161,9 +168,11 @@ class KnowledgeGraphHandler:
                         SET n += $properties
                         SET n:__Entity__
                         """.format(type=node.type),
-                        id=node.id, properties=node.properties
+                        id=node.id,
+                        properties=node.properties
                     )
-                
+
+                # Create relationships
                 for relationship in graph_document.relationships:
                     session.run(
                         """
@@ -176,8 +185,8 @@ class KnowledgeGraphHandler:
                         properties=relationship.properties
                     )
                     
-                logger.info(f"Nodes: List({graph_document.nodes})")
-                logger.info(f"Relationships : List({graph_document.relationships})")
+                self.logger.info(f"Nodes: List({graph_document.nodes})")
+                self.logger.info(f"Relationships : List({graph_document.relationships})")
 
     def create_fulltext_index(self):
         query_create = '''
@@ -188,5 +197,5 @@ class KnowledgeGraphHandler:
         '''
         with self.driver.session() as session:
             session.run(query_create)
-        logger.info("Fulltext index creation attempted (created if not existing).") 
+        self.logger.info("Fulltext index creation attempted (created if not existing).")
         
