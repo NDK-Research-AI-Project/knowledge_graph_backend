@@ -67,7 +67,7 @@ class QueryHandler:
 
         if not entities:
             return "No entities found in the question."
-            
+
         result = ""
         with self.driver.session() as session:
             for entity in entities:
@@ -75,12 +75,10 @@ class QueryHandler:
                     """
                     CALL db.index.fulltext.queryNodes('fulltext_entity_id', $query, {limit: 2})
                     YIELD node, score
-                    CALL {
-                        WITH node
+                    CALL (node, node)  {
                         MATCH (node)-[r]->(neighbor)
                         RETURN node.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
                         UNION ALL
-                        WITH node
                         MATCH (node)<-[r]-(neighbor)
                         RETURN neighbor.id + ' - ' + type(r) + ' -> ' + node.id AS output
                     }
@@ -88,15 +86,15 @@ class QueryHandler:
                     """,
                     {"query": entity}
                 )
-                    
+
                 results_for_entity = [record["output"] for record in response]
                 if results_for_entity:
                     result += f"\nEntity: {entity}\n" + "\n".join(results_for_entity) + "\n"
                 else:
                     result += f"\nEntity: {entity} - No related context found in the graph.\n"
-            
+
         return result
-        
+
     # def extract_entities(self, text):
     #     doc = self.nlp(text)  # Fixed typo here
     #     return [(ent.text, ent.label_) for ent in doc.ents]

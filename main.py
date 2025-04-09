@@ -21,65 +21,6 @@ app = Flask(__name__)
 handler = KnowledgeGraphHandler(config, logger)
 
 @app.route('/api/knowledge-graph/process-document', methods=['POST'])
-# def process_document():
-#     # Check if a file is part of the request
-#     if 'file' not in request.files:
-#         return jsonify({"message": "No file part"}), 400
-#
-#     file = request.files['file']
-#
-#     # Check if the file has a valid name
-#     if file.filename == '':
-#         logger.info({"error": "No selected file"}), 400
-#
-#     # pdf_bytes = file.read()
-#
-#     try:
-#         # # Create a temporary file to save the uploaded file
-#         # with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-#         #     temp_file.write(file.read())
-#         #     temp_file_path = temp_file.name
-#
-#         # # Step 1: Process the document and create the knowledge graph
-#         # handler.process_and_save_document(temp_file_path)
-#
-#         # Remove the temporary file after processing
-#         # os.remove(temp_file_path)
-#         # try:
-#         #     result = storage_service.upload_pdf_and_metadata(file)
-#         #     handler.process_document(pdf_bytes)
-#         #     logger.info({"message": "Knowledge graph created successfully."})
-#         #     return jsonify(result), 200
-#         #
-#         # except Exception as e:
-#         #     logger.error(f"Error while creating the knowledge graph: {e}")
-#         #     return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
-#
-#         # Read the file once and reuse it
-#         pdf_bytes = file.read()
-#
-#         # Use ByteIO for both storage and graph processing
-#         file_stream = BytesIO(pdf_bytes)
-#
-#         # Upload the file using file_stream (simulate the original file object)
-#         result, status = storage_service.upload_pdf_and_metadata(
-#             pdf_bytes=pdf_bytes,
-#             original_filename=file.filename,
-#             content_type=file.content_type
-#         )
-#         # Process the knowledge graph using the same byte content
-#         handler.process_document(pdf_bytes)
-#
-#         logger.info({"message": "Knowledge graph created successfully."})
-#         return jsonify(result), status
-#
-#
-#     except Exception as e:
-#         logger.error(f"Error while creating the knowledge graph: {e}")
-#         return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
-
-
-@app.route('/api/knowledge-graph/process-document', methods=['POST'])
 def process_document():
     if 'file' not in request.files:
         return jsonify({"message": "No file part"}), 400
@@ -101,7 +42,7 @@ def process_document():
         )
 
         if status == 409:
-            logger.info({"message": "File already exists. Skipping upload but reprocessing knowledge graph."})
+            logger.info({"message": "File already exists."})
         else:
             logger.info({"message": "File uploaded successfully."})
 
@@ -112,7 +53,7 @@ def process_document():
 
         # Return appropriate message
         if status == 409:
-            return jsonify({"message": "Document already exists. Knowledge graph reprocessed."}), 200
+            return jsonify({"message": "Document already exists."}), 200
         else:
             return jsonify(result), status
 
