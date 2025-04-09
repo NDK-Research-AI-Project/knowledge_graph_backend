@@ -66,4 +66,14 @@ class Config:
         self.mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
         self.mongo_glossary_db = os.getenv("GlossaryDB", "GlossaryDB")
         self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary-collection")
+
+        self.mongo_metadata_db = os.getenv("METADATA_DB", "Metadata")
+        self.mongo_metadata_collection = os.getenv("METADATA_COLLECTION", "metadata-collection")
+
+
+        # Azure
+        self.azure_connection_string = os.getenv("AZURE_CONNECTION_STRING", "DefaultEndpointsProtocol=https;AccountName=researchpdfstore;AccountKey=SQnY5MvTblA+bEu7bPw3orgeZhZzvg6jNTSF4c7yWCFsdk3cwWe5pqAPgPRGdCiwr2EIY/oKK8gR+AStFcG4WQ==;EndpointSuffix=core.windows.net")
+        self.azure_container_name = os.getenv("CONTAINER_NAME", "blobpdfcontainer")
+
+
     

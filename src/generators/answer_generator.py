@@ -37,10 +37,10 @@ class AnswerGenerator:
                 password=self.neo4j_password
             )
             
-            self.logger.info("Successfully connected to neo4j database")
+            self.logger.info("Successfully connected to neo4j services")
         
         except Exception as e:
-            self.logger.error("Error connecting to neo4j database")
+            self.logger.error("Error connecting to neo4j services")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
 
         # Load the DeepInfra API token for the LLM

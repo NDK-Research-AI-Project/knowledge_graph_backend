@@ -13,3 +13,4 @@ langchain-groq
 flask
 PyPDF2
 spacy
+azure-storage-blob

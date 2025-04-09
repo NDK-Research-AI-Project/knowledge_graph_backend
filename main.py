@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 
-from src.handlers import glossary_handler
+from io import BytesIO
+
 from src.handlers.glossary_handler import GlossaryHandler
 from src.handlers.knowledge_graph_handler import KnowledgeGraphHandler
 from src.generators.answer_generator import AnswerGenerator
+from src.services.storage_service import StorageService
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -11,6 +13,7 @@ from src.config.logging_config import setup_logging
 config = Config()
 logger = setup_logging(config.logging_config)
 answer_generator = AnswerGenerator(config, logger)
+storage_service = StorageService(logger)
 glossary_handler = GlossaryHandler(logger)
 
 app = Flask(__name__)
@@ -18,43 +21,114 @@ app = Flask(__name__)
 handler = KnowledgeGraphHandler(config, logger)
 
 @app.route('/api/knowledge-graph/process-document', methods=['POST'])
+# def process_document():
+#     # Check if a file is part of the request
+#     if 'file' not in request.files:
+#         return jsonify({"message": "No file part"}), 400
+#
+#     file = request.files['file']
+#
+#     # Check if the file has a valid name
+#     if file.filename == '':
+#         logger.info({"error": "No selected file"}), 400
+#
+#     # pdf_bytes = file.read()
+#
+#     try:
+#         # # Create a temporary file to save the uploaded file
+#         # with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+#         #     temp_file.write(file.read())
+#         #     temp_file_path = temp_file.name
+#
+#         # # Step 1: Process the document and create the knowledge graph
+#         # handler.process_and_save_document(temp_file_path)
+#
+#         # Remove the temporary file after processing
+#         # os.remove(temp_file_path)
+#         # try:
+#         #     result = storage_service.upload_pdf_and_metadata(file)
+#         #     handler.process_document(pdf_bytes)
+#         #     logger.info({"message": "Knowledge graph created successfully."})
+#         #     return jsonify(result), 200
+#         #
+#         # except Exception as e:
+#         #     logger.error(f"Error while creating the knowledge graph: {e}")
+#         #     return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
+#
+#         # Read the file once and reuse it
+#         pdf_bytes = file.read()
+#
+#         # Use ByteIO for both storage and graph processing
+#         file_stream = BytesIO(pdf_bytes)
+#
+#         # Upload the file using file_stream (simulate the original file object)
+#         result, status = storage_service.upload_pdf_and_metadata(
+#             pdf_bytes=pdf_bytes,
+#             original_filename=file.filename,
+#             content_type=file.content_type
+#         )
+#         # Process the knowledge graph using the same byte content
+#         handler.process_document(pdf_bytes)
+#
+#         logger.info({"message": "Knowledge graph created successfully."})
+#         return jsonify(result), status
+#
+#
+#     except Exception as e:
+#         logger.error(f"Error while creating the knowledge graph: {e}")
+#         return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
+
+
+@app.route('/api/knowledge-graph/process-document', methods=['POST'])
 def process_document():
-    # Check if a file is part of the request
     if 'file' not in request.files:
-        logger.info({"error": "No file part"})
+        return jsonify({"message": "No file part"}), 400
 
     file = request.files['file']
-
-    # Check if the file has a valid name
     if file.filename == '':
-        logger.info({"error": "No selected file"}), 400
-
-    pdf_bytes = file.read()
+        logger.info({"error": "No selected file"})
+        return jsonify({"message": "No selected file"}), 400
 
     try:
-        # # Create a temporary file to save the uploaded file
-        # with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-        #     temp_file.write(file.read())
-        #     temp_file_path = temp_file.name
-        
-        # # Step 1: Process the document and create the knowledge graph
-        # handler.process_and_save_document(temp_file_path)
-        
-        # Remove the temporary file after processing
-        # os.remove(temp_file_path)
-        try:
-            handler.process_document(pdf_bytes)
-            return jsonify({"message": "Knowledge graph created successfully."}), 200
-        
-        except Exception as e:
-            logger.error(f"Error while creating the knowledge graph: {e}")
-            return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
+        pdf_bytes = file.read()
+        file_stream = BytesIO(pdf_bytes)
 
-            
+        # First, try uploading the file
+        result, status = storage_service.upload_pdf_and_metadata(
+            pdf_bytes=pdf_bytes,
+            original_filename=file.filename,
+            content_type=file.content_type
+        )
+
+        if status == 409:
+            logger.info({"message": "File already exists. Skipping upload but reprocessing knowledge graph."})
+        else:
+            logger.info({"message": "File uploaded successfully."})
+
+        # Process knowledge graph regardless of upload status
+        handler.process_document(pdf_bytes)
+
+        logger.info({"message": "Knowledge graph created successfully."})
+
+        # Return appropriate message
+        if status == 409:
+            return jsonify({"message": "Document already exists. Knowledge graph reprocessed."}), 200
+        else:
+            return jsonify(result), status
 
     except Exception as e:
+        logger.error(f"Error while creating the knowledge graph: {e}")
         return jsonify({"error": f"Error while creating the knowledge graph: {str(e)}"}), 500
 
+
+@app.route('/api/documents', methods=['GET'])
+def get_all_documents():
+    try:
+        result, status = storage_service.list_documents()
+        return jsonify(result), status
+    except Exception as e:
+        logger.error({"error": str(e)})
+        return jsonify({"message": str(e)}), 500
 
 @app.route('/api/knowledge-graph/query', methods=['POST'])
 def get_answer():

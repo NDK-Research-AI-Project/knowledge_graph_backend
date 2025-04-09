@@ -1,4 +1,4 @@
-from src.database.mongo_client import glossary_collection
+from src.services.mongo_service import MongoDBHandler
 from datetime import datetime
 
 from src.config.config import Config
@@ -30,12 +30,14 @@ class GlossaryHandler:
             })
         if not docs:
             return {"message": "No valid glossary items provided."}
-        result = glossary_collection.insert_many(docs)
+        # result = glossary_collection.insert_many(docs)
+        result = config.mongo_glossary_collection.insert_many(docs)
         return {"message": f"{len(result.inserted_ids)} glossary items saved."}
 
     def get_all_glossary_items(self) -> list:
         """Returns all glossary entries as a list of dictionaries."""
-        cursor = glossary_collection.find({})
+        # cursor = glossary_collection.find({})
+        cursor = config.mongo_glossary_collection.find()
         items = []
         for doc in cursor:
             items.append({
@@ -50,7 +52,8 @@ class GlossaryHandler:
         and returns their definitions concatenated by newline.
         """
         query_lower = query.lower()
-        cursor = glossary_collection.find({})
+        # cursor = glossary_collection.find({})
+        cursor = config.mongo_glossary_collection.find({})
         matched = []
         for doc in cursor:
             term = doc.get("term", "")

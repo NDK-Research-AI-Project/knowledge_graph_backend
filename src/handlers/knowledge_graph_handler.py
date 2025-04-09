@@ -22,6 +22,7 @@ from yfiles_jupyter_graphs import GraphWidget
 from PyPDF2 import PdfReader
 from paddleocr import PaddleOCR
 from langchain_groq import ChatGroq
+from neo4j import Query
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -38,6 +39,7 @@ class KnowledgeGraphHandler:
         self.neo4j_uri = config.neo4j_uri
         self.neo4j_username = config.neo4j_username
         self.neo4j_password = config.neo4j_password
+
         
         try:
             self.driver = GraphDatabase.driver(
@@ -50,10 +52,10 @@ class KnowledgeGraphHandler:
                 password=self.neo4j_password
             )
             
-            self.logger.info("Successfully connected to neo4j database")
+            self.logger.info("Successfully connected to neo4j services")
         
         except Exception as e:
-            self.logger.error("Error connecting to neo4j database")
+            self.logger.error("Error connecting to neo4j services")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
 
         # Initialize OCR
@@ -75,32 +77,59 @@ class KnowledgeGraphHandler:
         self.llm_transformer = LLMGraphTransformer(llm=self.llm_groq)
         
         
+    # def process_document(self, pdf_content):
+    #     """Process a PDF document and create a knowledge graph."""
+    #     extracted_text = ""
+    #
+    #     # First try normal pdf text extraction
+    #     pdf_reader = PdfReader(io.BytesIO(pdf_content))
+    #     for page in pdf_reader.pages:
+    #         page_text = page.extract_text()
+    #         extracted_text += page_text
+    #
+    #     # If no text was extracted, try OCR
+    #     if not extracted_text.strip():
+    #         logger.info("No text extracted through normal pdf reading. Attempting OCR....")
+    #         extracted_text = self.extracted_text_using_ocr(pdf_content)
+    #
+    #     logger.info("Successfully extracted content from pdf")
+    #     logger.info(f"Extracted Text: {extracted_text}")
+    #     # return extracted_text
+    #
+    #     # split the extracted text into chunks
+    #     chunks = self.split_text_into_chunks(extracted_text)
+    #     logger.info("Successfully split into chunks")
+    #
+    #     self.create_knowledge_graph(chunks)
+    #     logger.info("Successfully created knowledge graph")
+
     def process_document(self, pdf_content):
-        """Process a PDF document and create a knowledge graph."""
-        extracted_text = ""
-        
-        # First try normal pdf text extraction
-        pdf_reader = PdfReader(io.BytesIO(pdf_content))
-        for page in pdf_reader.pages:
-            page_text = page.extract_text()
-            extracted_text += page_text
-            
-        # If no text was extracted, try OCR
-        if not extracted_text.strip():
-            logger.info("No text extracted through normal pdf reading. Attempting OCR....")
-            extracted_text = self.extracted_text_using_ocr(pdf_content)
-            
-        logger.info("Successfully extracted content from pdf")
-        logger.info(f"Extracted Text: {extracted_text}")
-        # return extracted_text
-        
-        # split the extracted text into chunks
-        chunks = self.split_text_into_chunks(extracted_text)
-        logger.info("Successfully split into chunks")
-        
-        self.create_knowledge_graph(chunks)
-        logger.info("Successfully created knowledge graph")
-            
+        try:
+            logger.info("Starting document processing...")
+            extracted_text = ""
+
+            pdf_reader = PdfReader(io.BytesIO(pdf_content))
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    extracted_text += page_text
+
+            if not extracted_text.strip():
+                logger.info("Trying OCR...")
+                extracted_text = self.extracted_text_using_ocr(pdf_content)
+
+            logger.info(f"Extracted text: {extracted_text[:500]}...")
+
+            chunks = self.split_text_into_chunks(extracted_text)
+            logger.info(f"Chunks created: {len(chunks)}")
+
+            self.create_knowledge_graph(chunks)
+            logger.info("Knowledge graph created successfully")
+
+        except Exception as e:
+            logger.error(f"Error during document processing: {e}", exc_info=True)
+            raise e
+
     def extracted_text_using_ocr(self, pdf_content):
         """Extract text from a PDF using PaddleOCR for all pages."""
         extracted_text = []
@@ -142,19 +171,27 @@ class KnowledgeGraphHandler:
         chunks = [Document(page_content=chunk) for chunk in text_splitter.split_text(raw_text)]
         return chunks
     
+    # def create_knowledge_graph(self, chunks):
+    #     # generate graph documents using LLM
+    #     graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
+    #
+    #     self.logger.info(f"Graph document: {graph_documents[0]}")
+    #
+    #     self.save_to_graph(graph_documents)
+    #
+    #     self.logger.info("Graph document has been processed and saved to the knowledge graph.")
+    #
+    #     self.create_fulltext_index()
     def create_knowledge_graph(self, chunks):
-        # generate graph documents using LLM
-        graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
-        
-        self.logger.info(f"Graph document: {graph_documents[0]}")
-        
-        self.save_to_graph(graph_documents)
-        
-        self.logger.info("Graph document has been processed and saved to the knowledge graph.")
-        
-        self.create_fulltext_index()
-        
-        
+        try:
+            graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
+            logger.info(f"First Graph doc: {graph_documents[0] if graph_documents else 'Empty'}")
+            self.save_to_graph(graph_documents)
+            self.create_fulltext_index()
+        except Exception as e:
+            logger.error(f"Graph creation failed: {e}", exc_info=True)
+            raise e
+
     # Save the graph documents into the Neo4j knowledge graph
     def save_to_graph(self, graph_documents):
         """Save the graph documents into the Neo4j knowledge graph."""
@@ -188,6 +225,18 @@ class KnowledgeGraphHandler:
                 self.logger.info(f"Nodes: List({graph_document.nodes})")
                 self.logger.info(f"Relationships : List({graph_document.relationships})")
 
+    # def create_fulltext_index(self):
+    #     query_create = '''
+    #     CREATE FULLTEXT INDEX `fulltext_entity_id`
+    #     IF NOT EXISTS
+    #     FOR (n:__Entity__)
+    #     ON EACH [n.id];
+    #     '''
+    #     with self.driver.session() as session:
+    #         session.run(query_create)
+    #     self.logger.info("Fulltext index creation attempted (created if not existing).")
+    #
+
     def create_fulltext_index(self):
         query_create = '''
         CREATE FULLTEXT INDEX `fulltext_entity_id`
@@ -196,6 +245,5 @@ class KnowledgeGraphHandler:
         ON EACH [n.id];
         '''
         with self.driver.session() as session:
-            session.run(query_create)
+            session.run(Query(query_create))  # FIX: wrap with Query()
         self.logger.info("Fulltext index creation attempted (created if not existing).")
-        
