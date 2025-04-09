@@ -32,10 +32,9 @@ logger = setup_logging(config.logging_config)
 
 
 class KnowledgeGraphHandler:
-    def __init__(self, config, logger):
+    def __init__(self, config):
         # Initialize Neo4j driver with credentials from Config
         self.config = config
-        self.logger = logger
         self.neo4j_uri = config.neo4j_uri
         self.neo4j_username = config.neo4j_username
         self.neo4j_password = config.neo4j_password
@@ -52,10 +51,10 @@ class KnowledgeGraphHandler:
                 password=self.neo4j_password
             )
             
-            self.logger.info("Successfully connected to neo4j services")
+            logger.info("Successfully connected to neo4j services")
         
         except Exception as e:
-            self.logger.error("Error connecting to neo4j services")
+            logger.error("Error connecting to neo4j services")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
 
         # Initialize OCR
@@ -222,8 +221,8 @@ class KnowledgeGraphHandler:
                         properties=relationship.properties
                     )
                     
-                self.logger.info(f"Nodes: List({graph_document.nodes})")
-                self.logger.info(f"Relationships : List({graph_document.relationships})")
+                logger.info(f"Nodes: List({graph_document.nodes})")
+                logger.info(f"Relationships : List({graph_document.relationships})")
 
     # def create_fulltext_index(self):
     #     query_create = '''
@@ -246,4 +245,4 @@ class KnowledgeGraphHandler:
         '''
         with self.driver.session() as session:
             session.run(Query(query_create))  # FIX: wrap with Query()
-        self.logger.info("Fulltext index creation attempted (created if not existing).")
+        logger.info("Fulltext index creation attempted (created if not existing).")

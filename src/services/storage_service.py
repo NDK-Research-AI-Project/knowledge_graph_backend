@@ -17,14 +17,13 @@ logger = setup_logging(config.logging_config)
 
 
 class StorageService:
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self):
         try:
             self.blob_service_client = BlobServiceClient.from_connection_string(config.azure_connection_string)
             self.container_client = self.blob_service_client.get_container_client(config.azure_container_name)
-            self.logger.info("Successfully connected to Azure storage container")
+            logger.info("Successfully connected to Azure storage container")
         except Exception as e:
-            self.logger.error(f"Failed to connect to Azure storage container: {e}")
+            logger.error(f"Failed to connect to Azure storage container: {e}")
             raise
 
         # Mongo config
@@ -33,9 +32,9 @@ class StorageService:
         self.metadata_collection = self.metadata_db[config.mongo_metadata_collection]
 
         try:
-            self.logger.info("Connected to MongoDB")
+            logger.info("Connected to MongoDB")
         except Exception as e:
-            self.logger.error(f"MongoDB connection error: {e}")
+            logger.error(f"MongoDB connection error: {e}")
             raise
 
     # def upload_pdf_and_metadata(self, file):

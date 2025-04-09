@@ -14,14 +14,13 @@ from src.config.logging_config import setup_logging
 
 config = Config()
 logger = setup_logging(config.logging_config)
-glossary_handler = GlossaryHandler(logger)
-query_hander = QueryHandler(config, logger)
+glossary_handler = GlossaryHandler()
+query_hander = QueryHandler(config)
 
 class AnswerGenerator:
-    def __init__(self, config, logger):
+    def __init__(self, config):
         # Initialize Neo4j driver with credentials from Config
         self.config = config
-        self.logger = logger
         self.neo4j_uri = config.neo4j_uri
         self.neo4j_username = config.neo4j_username
         self.neo4j_password = config.neo4j_password
@@ -37,10 +36,10 @@ class AnswerGenerator:
                 password=self.neo4j_password
             )
             
-            self.logger.info("Successfully connected to neo4j services")
+            logger.info("Successfully connected to neo4j services")
         
         except Exception as e:
-            self.logger.error("Error connecting to neo4j services")
+            logger.error("Error connecting to neo4j services")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
 
         # Load the DeepInfra API token for the LLM
@@ -68,16 +67,23 @@ class AnswerGenerator:
         try:
             # context retrieved from knowledge graph
             context = query_hander.retrieve_context_from_kg(query)
-            self.logger.info(f"Retrieved context: {context}")
+            logger.info(f"Retrieved context: {context}")
+
+            logger.info(f"Query: {query} (Type: {type(query)})")
+            logger.info(f"Context: (Type: {type(query)})")
             
             """
             Dynamically determine if glossary should be included
             """
+
+            logger.info("-----------Glossary Starts here---------------")
             
             # glossary = self.glossary_provider(query).strip()
             glossary = glossary_handler.get_glossary_for_query(query)
-            self.logger.info(f"Matched glossary for the query from glossary dictionary: {glossary}")
-            
+            logger.info(f"Matched glossary for the query from glossary dictionary: {glossary}")
+
+            logger.info(f"Context: {context}")
+
             # Ensuring glossary field is always present to avoid errors
             result = self.chain.invoke(
                 {
@@ -95,6 +101,6 @@ class AnswerGenerator:
             return result
         
         except Exception as e:
-            self.logger.error(f"Error generating answer: {e}")
+            logger.error(f"Error generating answer: {e}")
             raise
         

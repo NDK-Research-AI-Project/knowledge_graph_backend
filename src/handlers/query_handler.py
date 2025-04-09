@@ -11,10 +11,9 @@ config = Config()
 logger = setup_logging(config.logging_config)
 
 class QueryHandler:
-    def __init__(self, config, logger):
+    def __init__(self, config):
         # Initialize Neo4j driver with credentials from Config
         self.config = config
-        self.logger = logger
         self.neo4j_uri = config.neo4j_uri
         self.neo4j_username = config.neo4j_username
         self.neo4j_password = config.neo4j_password
@@ -33,7 +32,7 @@ class QueryHandler:
             # self.logger.info("Successfully connected to neo4j services")
         
         except Exception as e:
-            self.logger.error("Error connecting to neo4j services")
+            logger.error("Error connecting to neo4j services")
             raise ConnectionError(f"Unable to connect tp neo4j: {e}")
         
         # # Load the SpaCy NLP model for named entity recognition
@@ -111,9 +110,9 @@ class QueryHandler:
             # Split the comma-separated response and clean up whitespace
             entities = [entity.strip() for entity in result.content.split(",") if entity.strip()]
 
-            self.logger.info(f"Extracted entities: {entities}")
+            logger.info(f"Extracted entities: {entities}")
             return entities
 
         except Exception as e:
-            self.logger.error(f"Error extracting entities: {e}")
+            logger.error(f"Error extracting entities: {e}")
             return []

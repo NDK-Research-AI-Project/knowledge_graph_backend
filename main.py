@@ -12,13 +12,13 @@ from src.config.logging_config import setup_logging
 
 config = Config()
 logger = setup_logging(config.logging_config)
-answer_generator = AnswerGenerator(config, logger)
-storage_service = StorageService(logger)
-glossary_handler = GlossaryHandler(logger)
+answer_generator = AnswerGenerator(config)
+storage_service = StorageService()
+glossary_handler = GlossaryHandler()
 
 app = Flask(__name__)
 # Initialize the KnowledgeGraphHandler
-handler = KnowledgeGraphHandler(config, logger)
+handler = KnowledgeGraphHandler(config)
 
 @app.route('/api/knowledge-graph/process-document', methods=['POST'])
 def process_document():
