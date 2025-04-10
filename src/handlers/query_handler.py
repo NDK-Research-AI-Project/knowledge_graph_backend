@@ -110,7 +110,7 @@ class QueryHandler:
             # Split the comma-separated response and clean up whitespace
             entities = [entity.strip() for entity in result.content.split(",") if entity.strip()]
 
-            logger.info(f"Extracted entities: {entities}")
+            # logger.info(f"Extracted entities: {entities}")
             return entities
 
         except Exception as e:
