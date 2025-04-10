@@ -10,6 +10,9 @@ from src.services.storage_service import StorageService
 from src.config.config import Config
 from src.config.logging_config import setup_logging
 
+from flask_cors import CORS
+
+
 config = Config()
 logger = setup_logging(config.logging_config)
 answer_generator = AnswerGenerator(config)
@@ -17,6 +20,8 @@ storage_service = StorageService()
 glossary_handler = GlossaryHandler()
 
 app = Flask(__name__)
+
+CORS(app)  # Enable CORS for all routes
 # Initialize the KnowledgeGraphHandler
 handler = KnowledgeGraphHandler(config)
 
@@ -53,7 +58,7 @@ def process_document():
 
         # Return appropriate message
         if status == 409:
-            return jsonify({"message": "Document already exists."}), 200
+            return jsonify({"message": "Document already exists."}), 409
         else:
             return jsonify(result), status
 

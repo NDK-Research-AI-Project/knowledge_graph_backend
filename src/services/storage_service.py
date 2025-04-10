@@ -122,7 +122,10 @@ class StorageService:
         # Save metadata to MongoDB
         inserted_id = self.metadata_collection.insert_one(metadata).inserted_id
 
-        return {"documentId": str(inserted_id)}, 200
+        return {
+            "message": "File uploaded successfully", 
+            "documentId": str(inserted_id)
+        }, 200
 
     def list_documents(self):
         documents = list(self.metadata_collection.find({}, {

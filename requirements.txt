@@ -14,3 +14,4 @@ flask
 PyPDF2
 spacy
 azure-storage-blob
+flask_cors 

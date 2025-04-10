@@ -17,15 +17,15 @@ class GlossaryHandler:
 
     def add_glossary_items(self, items: list) -> dict:
         """
-        Expects items as a list of dictionaries, each with keys "Term" and "Definition".
+        Expects items as a list of dictionaries, each with keys "term" and "definition".
         Stores each item as a separate document.
         """
         docs = []
         for item in items:
-            term = item.get("Term")
-            definition = item.get("Definition")
+            term = item.get("term")
+            definition = item.get("definition")
             if not term or not definition:
-                logger.error("Both 'Term' and 'Definition' are required for each glossary item.")
+                logger.error("Both 'term' and 'definition' are required for each glossary item.")
                 continue
             docs.append({
                 "term": term,
@@ -45,8 +45,8 @@ class GlossaryHandler:
         items = []
         for doc in cursor:
             items.append({
-                "Term": doc.get("term"),
-                "Definition": doc.get("definition")
+                "term": doc.get("term"),
+                "definition": doc.get("definition")
             })
         return items
 

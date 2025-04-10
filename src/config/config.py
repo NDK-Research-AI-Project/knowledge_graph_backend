@@ -63,12 +63,17 @@ class Config:
 
 
         # MongoDB
-        self.mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        self.mongo_glossary_db = os.getenv("GlossaryDB", "GlossaryDB")
-        self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary-collection")
+        self.mongo_uri = os.getenv("MONGO_URI", "mongodb+srv://kavindamadhuranga74:fLaa4T079luktEQv@cluster0.xkdqxqw.mongodb.net/?appName=Cluster0")
+        # self.mongo_glossary_db = os.getenv("GlossaryDB", "your_ai_db")
+        # self.mongo_glossary_collection = os.getenv("GlossaryCollection", "pdf_store")
 
-        self.mongo_metadata_db = os.getenv("METADATA_DB", "Metadata")
-        self.mongo_metadata_collection = os.getenv("METADATA_COLLECTION", "metadata-collection")
+
+        self.mongo_glossary_db = os.getenv("GlossaryDB", "glossary_database")
+        self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary_collection")
+
+
+        self.mongo_metadata_db = os.getenv("METADATA_DB", "your_ai_db")
+        self.mongo_metadata_collection = os.getenv("METADATA_COLLECTION", "pdf_store")
 
 
         # Azure
