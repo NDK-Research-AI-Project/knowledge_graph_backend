@@ -64,10 +64,10 @@ class AnswerGenerator:
         try:
             # context retrieved from knowledge graph
             context = query_hander.retrieve_context_from_kg(query)
-            logger.info(f"Retrieved context: {context}")
+            # logger.info(f"Retrieved context: {context}")
 
-            logger.info(f"Query: {query} (Type: {type(query)})")
-            logger.info(f"Context: (Type: {type(query)})")
+            # logger.info(f"Query: {query} (Type: {type(query)})")
+            # logger.info(f"Context: (Type: {type(query)})")
             
             """
             Dynamically determine if glossary should be included
@@ -77,9 +77,9 @@ class AnswerGenerator:
             
             # glossary = self.glossary_provider(query).strip()
             glossary = glossary_handler.get_glossary_for_query(query)
-            logger.info(f"Matched glossary for the query from glossary dictionary: {glossary}")
+            # logger.info(f"Matched glossary for the query from glossary dictionary: {glossary}")
 
-            logger.info(f"Context: {context}")
+            # logger.info(f"Context: {context}")
 
             # Ensuring glossary field is always present to avoid errors
             result = self.chain.invoke(
