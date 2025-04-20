@@ -1,8 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate
-from neo4j import GraphDatabase
 from langchain_community.graphs import Neo4jGraph
 from neo4j import GraphDatabase
 from langchain_groq import ChatGroq
+import re
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -70,6 +70,7 @@ class QueryHandler:
         result = ""
         with self.driver.session() as session:
             for entity in entities:
+                sanitized_entity = self.escape_lucene_query(entity)
                 response = session.run(
                     """
                     CALL db.index.fulltext.queryNodes('fulltext_entity_id', $query, {limit: 2})
@@ -83,7 +84,7 @@ class QueryHandler:
                     }
                     RETURN output LIMIT 50
                     """,
-                    {"query": entity}
+                    {"query": sanitized_entity}
                 )
 
                 results_for_entity = [record["output"] for record in response]
@@ -116,3 +117,7 @@ class QueryHandler:
         except Exception as e:
             logger.error(f"Error extracting entities: {e}")
             return []
+
+    def escape_lucene_query(self, query):
+        # Escape Lucene special characters
+        return re.sub(r'([+\-!(){}\[\]^"~*?:\\/])', r'\\\1', query)
