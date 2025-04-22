@@ -11,21 +11,19 @@ class Config:
     This class manages all configuration parameters, loading them from environment
     variables with fallback to default values
     """
-    # NEO4J_URI = os.getenv("NEO4J_URI","neo4j+s://c95a3680.databases.neo4j.io")
-    # NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
-    # NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
 
-    
-    # DEEPINFRA_API_TOKEN = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
-    # GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
-    
-    
     def __init__(self):
+
+        # Correct Neo4j
+        # self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://9d3d116e.databases.neo4j.io")
+        # self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
+        # self.neo4j_password = os.getenv("NEO4J_PASSWORD", "MTmhQ8kiaRqRltgDThU_4hYE-aCCpIVk5aNmcUnKWKU")
+
         self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://c95a3680.databases.neo4j.io")
         self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
         self.neo4j_password = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
-        
-        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "GBVfX0ihh7a3qSoNmpUfU8Iponkn3EOQ")
+
+        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
         self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
 

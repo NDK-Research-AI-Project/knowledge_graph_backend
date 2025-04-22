@@ -1,24 +1,10 @@
-import os
-import hashlib
-import pickle
 import io
 import fitz
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-# from langchain_community.graphs import Neo4jGraph
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_experimental.graph_transformers import LLMGraphTransformer
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.llms import DeepInfra
 from neo4j import GraphDatabase
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_core.documents import Document
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 from langchain_community.graphs import Neo4jGraph
-from langchain_community.document_loaders import TextLoader
-from yfiles_jupyter_graphs import GraphWidget
 from PyPDF2 import PdfReader
 from paddleocr import PaddleOCR
 from langchain_groq import ChatGroq
@@ -75,32 +61,6 @@ class KnowledgeGraphHandler:
         # Initialize LLM Tranformer
         self.llm_transformer = LLMGraphTransformer(llm=self.llm_groq)
         
-        
-    # def process_document(self, pdf_content):
-    #     """Process a PDF document and create a knowledge graph."""
-    #     extracted_text = ""
-    #
-    #     # First try normal pdf text extraction
-    #     pdf_reader = PdfReader(io.BytesIO(pdf_content))
-    #     for page in pdf_reader.pages:
-    #         page_text = page.extract_text()
-    #         extracted_text += page_text
-    #
-    #     # If no text was extracted, try OCR
-    #     if not extracted_text.strip():
-    #         logger.info("No text extracted through normal pdf reading. Attempting OCR....")
-    #         extracted_text = self.extracted_text_using_ocr(pdf_content)
-    #
-    #     logger.info("Successfully extracted content from pdf")
-    #     logger.info(f"Extracted Text: {extracted_text}")
-    #     # return extracted_text
-    #
-    #     # split the extracted text into chunks
-    #     chunks = self.split_text_into_chunks(extracted_text)
-    #     logger.info("Successfully split into chunks")
-    #
-    #     self.create_knowledge_graph(chunks)
-    #     logger.info("Successfully created knowledge graph")
 
     def process_document(self, pdf_content):
         try:
@@ -170,17 +130,7 @@ class KnowledgeGraphHandler:
         chunks = [Document(page_content=chunk) for chunk in text_splitter.split_text(raw_text)]
         return chunks
     
-    # def create_knowledge_graph(self, chunks):
-    #     # generate graph documents using LLM
-    #     graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
-    #
-    #     self.logger.info(f"Graph document: {graph_documents[0]}")
-    #
-    #     self.save_to_graph(graph_documents)
-    #
-    #     self.logger.info("Graph document has been processed and saved to the knowledge graph.")
-    #
-    #     self.create_fulltext_index()
+
     def create_knowledge_graph(self, chunks):
         try:
             graph_documents = self.llm_transformer.convert_to_graph_documents(chunks)
@@ -224,17 +174,7 @@ class KnowledgeGraphHandler:
                 logger.info(f"Nodes: List({graph_document.nodes})")
                 logger.info(f"Relationships : List({graph_document.relationships})")
 
-    # def create_fulltext_index(self):
-    #     query_create = '''
-    #     CREATE FULLTEXT INDEX `fulltext_entity_id`
-    #     IF NOT EXISTS
-    #     FOR (n:__Entity__)
-    #     ON EACH [n.id];
-    #     '''
-    #     with self.driver.session() as session:
-    #         session.run(query_create)
-    #     self.logger.info("Fulltext index creation attempted (created if not existing).")
-    #
+
 
     def create_fulltext_index(self):
         query_create = '''
