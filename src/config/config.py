@@ -25,9 +25,9 @@ class Config:
         self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
         self.neo4j_password = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
         
-        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
+        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "GBVfX0ihh7a3qSoNmpUfU8Iponkn3EOQ")
 
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
 
         self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
 
@@ -48,6 +48,28 @@ class Config:
         7. Use only necessary info from context—ignore unrelated parts.
 
         Answer:""")
+
+        # self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
+
+        # Context: {context}
+
+        # Glossary (use for understanding terms in the question and context): 
+        # {glossary}
+
+        # Question: {question}
+
+        # Instructions:
+        # 1. If a term in the question is similar to a term in the glossary (even if misspelled), treat the term as referring to the correct glossary term.
+        # 2. For example, if "Ashaliy" appears in the question and "Ashalia" is in the glossary, interpret "Ashaliy" as "Ashalia" in your answer.
+        # 3. Use glossary definitions to understand terms in the question and context.
+        # 4. Do not copy glossary definitions directly into the answer.
+        # 5. If the glossary is empty or irrelevant, ignore it.
+        # 6. Do not answer based on your own general knowledge—only use the provided context and glossary.
+        # 7. If the question is unclear even after applying glossary info, say: "I'm sorry, I didn't understand your question. Could you please rephrase it?"
+        # 8. Give a direct answer only—no explanations of reasoning.
+        # 9. Use only necessary info from context—ignore unrelated parts.
+
+        # Answer:""")
 
         # Logging configuration
         self.logging_config = {
