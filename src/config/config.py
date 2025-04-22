@@ -25,7 +25,7 @@ class Config:
 
         self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
 
         self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
 
