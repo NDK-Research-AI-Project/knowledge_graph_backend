@@ -47,6 +47,28 @@ class Config:
 
         Answer:""")
 
+        # self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
+
+        # Context: {context}
+
+        # Glossary (use for understanding terms in the question and context): 
+        # {glossary}
+
+        # Question: {question}
+
+        # Instructions:
+        # 1. If a term in the question is similar to a term in the glossary (even if misspelled), treat the term as referring to the correct glossary term.
+        # 2. For example, if "Ashaliy" appears in the question and "Ashalia" is in the glossary, interpret "Ashaliy" as "Ashalia" in your answer.
+        # 3. Use glossary definitions to understand terms in the question and context.
+        # 4. Do not copy glossary definitions directly into the answer.
+        # 5. If the glossary is empty or irrelevant, ignore it.
+        # 6. Do not answer based on your own general knowledge—only use the provided context and glossary.
+        # 7. If the question is unclear even after applying glossary info, say: "I'm sorry, I didn't understand your question. Could you please rephrase it?"
+        # 8. Give a direct answer only—no explanations of reasoning.
+        # 9. Use only necessary info from context—ignore unrelated parts.
+
+        # Answer:""")
+
         # Logging configuration
         self.logging_config = {
             'logstash_host': os.getenv('LOGSTASH_HOST', 'localhost'),

@@ -14,3 +14,6 @@ flask
 PyPDF2
 azure-storage-blob
 flask_cors 
+pymongo
+rapidfuzz 
+pandas
