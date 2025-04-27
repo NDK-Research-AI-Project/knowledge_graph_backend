@@ -118,5 +118,32 @@ def list_glossary():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/glossary/update/<item_id>', methods=['PATCH'])
+def update_glossary(item_id):
+    data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Expected a JSON object with update data."}), 400
+    try:
+        result = glossary_handler.update_glossary_item(item_id, data)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error updating glossary item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/glossary/delete/<item_id>', methods=['DELETE'])
+def delete_glossary(item_id):
+    try:
+        result = glossary_handler.delete_glossary_item(item_id)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error deleting glossary item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)

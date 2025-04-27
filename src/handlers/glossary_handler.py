@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 import pandas as pd
 from pymongo.mongo_client import MongoClient
 from rapidfuzz import process, fuzz
+from bson import ObjectId
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -64,7 +65,25 @@ class GlossaryHandler:
         if not self.glossary_cache is None:
             self._refresh_cache()
         
-        return self.glossary_cache.to_dict('records') if not self.glossary_cache.empty else []
+        # Get documents directly from MongoDB to ensure _id is included
+        cursor = self.glossary_collection.find()
+        items = []
+        for doc in cursor:
+            # Create a clean dictionary with just the fields we want
+            item = {
+                "_id": str(doc['_id']),
+                "term": doc.get('term', ''),
+                "definition": doc.get('definition', '')
+            }
+            # Optionally add other fields if present
+            if 'createdAt' in doc:
+                item['createdAt'] = doc['createdAt']
+            if 'updatedAt' in doc:
+                item['updatedAt'] = doc['updatedAt']
+                
+            items.append(item)
+        
+        return items
 
     def get_glossary_for_query(self, query: str) -> str:
         """
@@ -97,5 +116,84 @@ class GlossaryHandler:
             logger.info(f"Fuzzy matching happened - term: {term}, score: {score}")
         
         return "\n".join(matched) if matched else ""
+
+    def update_glossary_item(self, item_id: str, updated_data: dict) -> dict:
+        """
+        Updates a glossary item by its ID.
+        
+        Args:
+            item_id: The ID of the item to update
+            updated_data: Dictionary containing the fields to update (term and/or definition)
+            
+        Returns:
+            A message indicating success or failure
+        """
+        try:
+            # Check if id is valid
+            if not ObjectId.is_valid(item_id):
+                logger.error(f"Invalid glossary item ID format: {item_id}")
+                return {"error": "Invalid glossary item ID format"}
+                
+            # Create update dictionary with only valid fields
+            update_fields = {}
+            if "term" in updated_data and updated_data["term"]:
+                update_fields["term"] = updated_data["term"]
+            if "definition" in updated_data and updated_data["definition"]:
+                update_fields["definition"] = updated_data["definition"]
+            
+            if not update_fields:
+                return {"error": "No valid fields to update"}
+            
+            # Add updatedAt timestamp
+            update_fields["updatedAt"] = datetime.now(UTC)
+            
+            # Perform the update
+            result = self.glossary_collection.update_one(
+                {"_id": ObjectId(item_id)},
+                {"$set": update_fields}
+            )
+            
+            # Refresh cache after update
+            self._refresh_cache()
+            
+            if result.matched_count == 0:
+                return {"error": f"Glossary item with ID {item_id} not found"}
+            
+            return {"message": f"Glossary item {item_id} updated successfully"}
+            
+        except Exception as e:
+            logger.error(f"Error updating glossary item: {e}")
+            return {"error": f"Error updating glossary item: {str(e)}"}
+    
+    def delete_glossary_item(self, item_id: str) -> dict:
+        """
+        Deletes a glossary item by its ID.
+        
+        Args:
+            item_id: The ID of the item to delete
+            
+        Returns:
+            A message indicating success or failure
+        """
+        try:
+            # Check if id is valid
+            if not ObjectId.is_valid(item_id):
+                logger.error(f"Invalid glossary item ID format: {item_id}")
+                return {"error": "Invalid glossary item ID format"}
+            
+            # Perform the deletion
+            result = self.glossary_collection.delete_one({"_id": ObjectId(item_id)})
+            
+            # Refresh cache after deletion
+            self._refresh_cache()
+            
+            if result.deleted_count == 0:
+                return {"error": f"Glossary item with ID {item_id} not found"}
+            
+            return {"message": f"Glossary item {item_id} deleted successfully"}
+            
+        except Exception as e:
+            logger.error(f"Error deleting glossary item: {e}")
+            return {"error": f"Error deleting glossary item: {str(e)}"}
 
 
