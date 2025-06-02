@@ -75,7 +75,7 @@ class QueryHandler:
                     """
                     CALL db.index.fulltext.queryNodes('fulltext_entity_id', $query, {limit: 2})
                     YIELD node, score
-                    CALL (node, node)  {
+                    CALL (node) {
                         MATCH (node)-[r]->(neighbor)
                         RETURN node.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
                         UNION ALL
