@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from bson import ObjectId
 
 from io import BytesIO
 
@@ -84,13 +85,71 @@ def get_answer():
         return jsonify({"error": "Question field is required"}), 400
     
     question = data['question']
+    session_id = data.get('session_id')  # Optional session_id from frontend
+    
+    # If no session_id provided, create a new one using MongoDB ObjectId
+    if not session_id:
+        session_id = str(ObjectId())
+        logger.info(f"Created new session for query: {session_id}")
 
     try:
+        # Save user question to database
+        user_message = save_chat_message(session_id, 'user', question)
+        logger.info(f"Saved user question to session {session_id}")
+
+        # Generate answer using the knowledge graph
         answer = answer_generator.generate_answer(question)
-        return jsonify({"answer": str(answer)})
+        
+        # Save LLM response to database
+        assistant_message = save_chat_message(session_id, 'assistant', str(answer))
+        logger.info(f"Saved LLM response to session {session_id}")
+        
+        return jsonify({
+            "answer": str(answer),
+            "session_id": session_id  # Return session_id to frontend
+        })
     except Exception as e:
+        logger.error(f"Error in query endpoint: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+
+# Enhanced chat endpoint that uses knowledge graph for responses
+@app.route('/api/chat/<string:session_id>/query', methods=['POST'])
+def chat_with_knowledge_graph(session_id):
+    """
+    Send a question to a specific chat session and get an answer from the knowledge graph.
+    This endpoint combines chat functionality with knowledge graph querying.
+    """
+    data = request.get_json()
+
+    if 'question' not in data:
+        return jsonify({"error": "Question field is required"}), 400
+    
+    question = data['question']
+
+    try:
+        # Save user question to database
+        user_message = save_chat_message(session_id, 'user', question)
+        
+        # Generate answer using the knowledge graph
+        answer = answer_generator.generate_answer(question)
+        
+        # Save LLM response to database
+        assistant_message = save_chat_message(session_id, 'assistant', str(answer))
+        
+        logger.info(f"Processed chat query for session {session_id}")
+        
+        return jsonify({
+            "answer": str(answer),
+            "session_id": session_id,
+            "user_message": serialize_message(user_message),
+            "assistant_message": serialize_message(assistant_message)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in chat query endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # New endpoint: add glossary items
@@ -143,6 +202,162 @@ def delete_glossary(item_id):
     except Exception as e:
         logger.error(f"Error deleting glossary item: {e}")
         return jsonify({"error": str(e)}), 500
+    
+
+# Chat functionality setup
+chat_collection = storage_service.chat_collection
+datetime = storage_service.datetime
+
+def save_chat_message(session_id, role, content):
+    """
+    Utility function to save a chat message to the database.
+    
+    Args:
+        session_id (str): The chat session ID
+        role (str): 'user' or 'assistant'
+        content (str): The message content
+    
+    Returns:
+        dict: The saved message document
+    """
+    message = {
+        'session_id': session_id,
+        'role': role,
+        'content': content,
+        'timestamp': datetime.utcnow()
+    }
+    result = chat_collection.insert_one(message)
+    message['_id'] = result.inserted_id
+    return message
+
+serialize_message = lambda msg: {
+    'id': str(msg['_id']),
+    'session_id': msg['session_id'],
+    'role': msg['role'],
+    'content': msg['content'],
+    'timestamp': msg['timestamp'].isoformat() if isinstance(msg['timestamp'], datetime) else msg['timestamp']
+}
+
+# Endpoint to list chat sessions
+@app.route('/chat/sessions', methods=['GET'])
+def list_chat_sessions():
+    """
+    List all chat sessions with their metadata.
+    This can be useful for the frontend to show a list of previous chats.
+    """
+    try:
+        # Get unique session IDs and their latest message timestamps
+        pipeline = [
+            {
+                '$group': {
+                    '_id': '$session_id',
+                    'last_message_time': {'$max': '$timestamp'},
+                    'message_count': {'$sum': 1}
+                }
+            },
+            {
+                '$sort': {'last_message_time': -1}
+            },
+            {
+                '$limit': 50  # Limit to last 50 sessions
+            }
+        ]
+        
+        sessions = list(chat_collection.aggregate(pipeline))
+        
+        # Format the response
+        formatted_sessions = []
+        for session in sessions:
+            formatted_sessions.append({
+                'session_id': session['_id'],
+                'last_message_time': session['last_message_time'].isoformat() if isinstance(session['last_message_time'], datetime) else session['last_message_time'],
+                'message_count': session['message_count']
+            })
+        
+        return jsonify({
+            'sessions': formatted_sessions,
+            'total_count': len(formatted_sessions)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error listing chat sessions: {e}")
+        return jsonify({'error': f'Error listing chat sessions: {str(e)}'}), 500
+
+
+# Endpoint to create a new chat session
+@app.route('/chat/create', methods=['POST'])
+def create_chat_session():
+    """
+    Create a new chat session and return the session ID.
+    The frontend can use this ID to start a new chat thread.
+    """
+    try:
+        # Generate a unique session ID using MongoDB ObjectId
+        session_id = str(ObjectId())
+        
+        # Optionally, you can create an initial session document in MongoDB
+        # to track session metadata (creation time, etc.)
+        session_metadata = {
+            'session_id': session_id,
+            'created_at': datetime.utcnow(),
+            'status': 'active'
+        }
+        
+        # Store session metadata (optional)
+        # For now, we'll just return the session ID without storing metadata
+        # If you want to store session metadata, uncomment the next line:
+        # chat_collection.insert_one(session_metadata)
+        
+        logger.info(f"Created new chat session: {session_id}")
+        
+        return jsonify({
+            'session_id': session_id,
+            'message': 'Chat session created successfully'
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Error creating chat session: {e}")
+        return jsonify({'error': f'Error creating chat session: {str(e)}'}), 500
+
+# Endpoint to add a message to a specific chat session
+@app.route('/chat/<string:session_id>', methods=['POST'])
+def add_message(session_id):
+    data = request.get_json()
+    role = data.get('role')
+    content = data.get('content')
+    if not role or not content:
+        return jsonify({'error': 'role and content are required'}), 400
+
+    message = {
+        'session_id': session_id,
+        'role': role,
+        'content': content,
+        'timestamp': datetime.utcnow()
+    }
+    result = chat_collection.insert_one(message)
+    message['_id'] = result.inserted_id
+    return jsonify(serialize_message(message)), 201
+
+# Endpoint to retrieve chat history for a specific session
+@app.route('/chat/<string:session_id>', methods=['GET'])
+def get_history(session_id):
+    limit = int(request.args.get('limit', 100))
+    skip = int(request.args.get('skip', 0))
+
+    cursor = chat_collection.find({'session_id': session_id})\
+                            .sort('timestamp', 1)\
+                            .skip(skip)\
+                            .limit(limit)
+    messages = [serialize_message(msg) for msg in cursor]
+    return jsonify(messages), 200
+
+# Endpoint to delete chat history for a specific session
+@app.route('/chat/<string:session_id>', methods=['DELETE'])
+def delete_history(session_id):
+    result = chat_collection.delete_many({'session_id': session_id})
+    return jsonify({'deleted_count': result.deleted_count}), 200
+
+
 
 
 if __name__ == "__main__":

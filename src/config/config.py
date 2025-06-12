@@ -85,16 +85,15 @@ class Config:
         # MongoDB
         self.mongo_uri = os.getenv("MONGO_URI", "mongodb+srv://kavindamadhuranga74:fLaa4T079luktEQv@cluster0.xkdqxqw.mongodb.net/?appName=Cluster0")
         # self.mongo_glossary_db = os.getenv("GlossaryDB", "your_ai_db")
-        # self.mongo_glossary_collection = os.getenv("GlossaryCollection", "pdf_store")
-
-
-        self.mongo_glossary_db = os.getenv("GlossaryDB", "glossary_database")
+        # self.mongo_glossary_collection = os.getenv("GlossaryCollection", "pdf_store")        self.mongo_glossary_db = os.getenv("GlossaryDB", "glossary_database")
         self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary_collection")
-
 
         self.mongo_metadata_db = os.getenv("METADATA_DB", "your_ai_db")
         self.mongo_metadata_collection = os.getenv("METADATA_COLLECTION", "pdf_store")
 
+        # Chat configuration
+        self.mongo_chat_db = os.getenv("CHAT_DB", "chat_database")
+        self.mongo_chat_collection = os.getenv("CHAT_COLLECTION", "chat_sessions")
 
         # Azure
         self.azure_connection_string = os.getenv("AZURE_CONNECTION_STRING", "DefaultEndpointsProtocol=https;AccountName=researchpdfstore;AccountKey=SQnY5MvTblA+bEu7bPw3orgeZhZzvg6jNTSF4c7yWCFsdk3cwWe5pqAPgPRGdCiwr2EIY/oKK8gR+AStFcG4WQ==;EndpointSuffix=core.windows.net")
