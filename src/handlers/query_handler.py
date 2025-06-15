@@ -6,6 +6,7 @@ import re
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
+from src.handlers.explanation_handler import ExplanationHandler
 
 config = Config()
 logger = setup_logging(config.logging_config)
@@ -17,6 +18,7 @@ class QueryHandler:
         self.neo4j_uri = config.neo4j_uri
         self.neo4j_username = config.neo4j_username
         self.neo4j_password = config.neo4j_password
+        self.explanation_handler = ExplanationHandler()
         
         try:
             self.driver = GraphDatabase.driver(
@@ -59,10 +61,16 @@ class QueryHandler:
             ("user", "{text}")
         ])
         
-        
     def retrieve_context_from_kg(self, question):
-        # entities = [ent[0] for ent in self.extract_entities(question)]
+        self.explanation_handler.clear()  # Clear previous explanations
+        self.explanation_handler.add_step("Starting to process your question...")
+        
+        # Extract entities
         entities = self.extract_entities(question)
+        if entities:
+            self.explanation_handler.add_step(f"I identified the following key entities in your question: {', '.join(entities)}")
+        else:
+            self.explanation_handler.add_step("No specific entities were found in your question.")
 
         if not entities:
             return "No entities found in the question."
@@ -71,6 +79,8 @@ class QueryHandler:
         with self.driver.session() as session:
             for entity in entities:
                 sanitized_entity = self.escape_lucene_query(entity)
+                self.explanation_handler.add_step(f"Searching the knowledge graph for information about '{entity}'...")
+                
                 response = session.run(
                     """
                     CALL db.index.fulltext.queryNodes('fulltext_entity_id', $query, {limit: 2})
@@ -90,9 +100,12 @@ class QueryHandler:
                 results_for_entity = [record["output"] for record in response]
                 if results_for_entity:
                     result += f"\nEntity: {entity}\n" + "\n".join(results_for_entity) + "\n"
+                    self.explanation_handler.add_step(f"Found {len(results_for_entity)} relevant connections for '{entity}' in the knowledge graph.")
                 else:
                     result += f"\nEntity: {entity} - No related context found in the graph.\n"
+                    self.explanation_handler.add_step(f"No specific information found for '{entity}' in the knowledge graph.")
 
+        self.explanation_handler.add_step("Gathered all relevant information from the knowledge graph.")
         return result
 
     # def extract_entities(self, text):
@@ -121,3 +134,7 @@ class QueryHandler:
     def escape_lucene_query(self, query):
         # Escape Lucene special characters
         return re.sub(r'([+\-!(){}\[\]^"~*?:\\/])', r'\\\1', query)
+        
+    def get_explanation(self):
+        """Get the current explanation"""
+        return self.explanation_handler.get_explanation()
