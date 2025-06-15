@@ -54,12 +54,19 @@ class QueryHandler:
         # Define the entity extraction prompt
         self.entity_extraction_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an expert at extracting key entities from text. 
-                    Extract all important entities (like names, organizations, locations, technical terms, etc.) from the given text.
+                    Extract all the entities that appear in the text
+                    Extract ONLY the entities that are EXPLICITLY MENTIONED in the given text.
+                    DO NOT add any related terms or concepts that are not directly mentioned.
                     Return only the entities as a comma-separated list. Do not include explanations or labels.
+                    
                     Example input: "What projects did John Smith work on at Microsoft in Seattle?"
-                    Example output: John Smith, Microsoft, Seattle"""),
+                    Example output: John Smith, Microsoft, Seattle
+
+                    Example input: "What are the symptoms of diabetes?" 
+                    Example output: diabetes"""),
             ("user", "{text}")
         ])
+        
         
     def retrieve_context_from_kg(self, question):
         self.explanation_handler.clear()  # Clear previous explanations

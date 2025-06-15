@@ -76,7 +76,13 @@ class AnswerGenerator:
             # Get the explanation of the process
             explanation_steps = query_hander.get_explanation()
             
-            # Get glossary information
+            """
+            Dynamically determine if glossary should be included
+            """
+
+            logger.info("-----------Glossary Starts here---------------")
+            
+            # glossary = self.glossary_provider(query).strip()
             glossary = glossary_handler.get_glossary_for_query(query)
             if glossary:
                 explanation_steps.append("I also checked the glossary for relevant terms.")
