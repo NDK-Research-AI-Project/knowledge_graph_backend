@@ -5,8 +5,8 @@ from io import BytesIO
 
 from src.handlers.glossary_handler import GlossaryHandler
 from src.handlers.knowledge_graph_handler import KnowledgeGraphHandler
-from src.generators.answer_generator import AnswerGenerator
 from src.services.storage_service import StorageService
+from src.generators.answer_generator import AnswerGenerator
 
 from src.config.config import Config
 from src.config.logging_config import setup_logging
@@ -16,9 +16,9 @@ from flask_cors import CORS
 
 config = Config()
 logger = setup_logging(config.logging_config)
-answer_generator = AnswerGenerator(config)
 storage_service = StorageService()
 glossary_handler = GlossaryHandler()
+answer_generator = AnswerGenerator(config)
 
 app = Flask(__name__)
 
@@ -239,7 +239,7 @@ serialize_message = lambda msg: {
 }
 
 # Endpoint to list chat sessions
-@app.route('/chat/sessions', methods=['GET'])
+@app.route('/api/chat/sessions', methods=['GET'])
 def list_chat_sessions():
     """
     List all chat sessions with their metadata.
@@ -285,7 +285,7 @@ def list_chat_sessions():
 
 
 # Endpoint to create a new chat session
-@app.route('/chat/create', methods=['POST'])
+@app.route('/api/chat/create', methods=['POST'])
 def create_chat_session():
     """
     Create a new chat session and return the session ID.
@@ -320,7 +320,7 @@ def create_chat_session():
         return jsonify({'error': f'Error creating chat session: {str(e)}'}), 500
 
 # Endpoint to add a message to a specific chat session
-@app.route('/chat/<string:session_id>', methods=['POST'])
+@app.route('/api/chat/<string:session_id>', methods=['POST'])
 def add_message(session_id):
     data = request.get_json()
     role = data.get('role')
@@ -339,7 +339,7 @@ def add_message(session_id):
     return jsonify(serialize_message(message)), 201
 
 # Endpoint to retrieve chat history for a specific session
-@app.route('/chat/<string:session_id>', methods=['GET'])
+@app.route('/api/chat/<string:session_id>', methods=['GET'])
 def get_history(session_id):
     limit = int(request.args.get('limit', 100))
     skip = int(request.args.get('skip', 0))
@@ -352,7 +352,7 @@ def get_history(session_id):
     return jsonify(messages), 200
 
 # Endpoint to delete chat history for a specific session
-@app.route('/chat/<string:session_id>', methods=['DELETE'])
+@app.route('/api/chat/<string:session_id>', methods=['DELETE'])
 def delete_history(session_id):
     result = chat_collection.delete_many({'session_id': session_id})
     return jsonify({'deleted_count': result.deleted_count}), 200
