@@ -2,6 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.graphs import Neo4jGraph
 from neo4j import GraphDatabase
 from langchain_groq import ChatGroq
+from langchain_community.chat_models import ChatDeepInfra
 from langchain_core.messages import AIMessage
 
 from src.handlers.glossary_handler import GlossaryHandler
@@ -44,6 +45,7 @@ class AnswerGenerator:
         self.groq_api_key = config.groq_api_key
         
         self.groq_model = config.groq_model
+        self.deepinfra_model = config.deepinfra_model
         self.chat_template = config.chat_template
         
         # Intialize the model
@@ -52,6 +54,12 @@ class AnswerGenerator:
             api_key=self.groq_api_key,
             temperature=0,
             max_tokens=None
+        )
+
+        self.llm_deepinfra = ChatDeepInfra(
+            model=self.deepinfra_model,
+            api_token=self.deepinfra_api_token,
+            temperature=0,  # Setting a reasonable default value
         )
         
         self.prompt = ChatPromptTemplate.from_template(self.chat_template)
