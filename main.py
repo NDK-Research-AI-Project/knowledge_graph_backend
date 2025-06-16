@@ -86,8 +86,8 @@ def get_answer():
     question = data['question']
 
     try:
-        answer = answer_generator.generate_answer(question)
-        return jsonify({"answer": str(answer)})
+        response = answer_generator.generate_answer(question)
+        return jsonify(response)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

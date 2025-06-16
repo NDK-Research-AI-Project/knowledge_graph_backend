@@ -72,10 +72,9 @@ class AnswerGenerator:
         try:
             # context retrieved from knowledge graph
             context = query_hander.retrieve_context_from_kg(query)
-            # logger.info(f"Retrieved context: {context}")
-
-            # logger.info(f"Query: {query} (Type: {type(query)})")
-            # logger.info(f"Context: (Type: {type(query)})")
+            
+            # Get the explanation of the process
+            explanation_steps = query_hander.get_explanation()
             
             """
             Dynamically determine if glossary should be included
@@ -85,11 +84,13 @@ class AnswerGenerator:
             
             # glossary = self.glossary_provider(query).strip()
             glossary = glossary_handler.get_glossary_for_query(query)
-            # logger.info(f"Matched glossary for the query from glossary dictionary: {glossary}")
+            if glossary:
+                explanation_steps.append("I also checked the glossary for relevant terms.")
 
-            # logger.info(f"Context: {context}")
+            # Add step about generating answer
+            explanation_steps.append("Now, I'm generating a comprehensive answer based on all the gathered information...")
 
-            # Ensuring glossary field is always present to avoid errors
+            # Generate the answer
             result = self.chain.invoke(
                 {
                     "context": context,
@@ -102,8 +103,16 @@ class AnswerGenerator:
             if isinstance(result, AIMessage):  
                 result = result.content  # Extracting the text content
             
-            logger.info(f"Answer generated form LLM: {result}")
-            return result
+            # Add step about answer completion
+            explanation_steps.append("I've generated an answer that combines all the relevant information from the knowledge graph and glossary.")
+
+            # Combine the explanation and the answer
+            final_response = {
+                "explanation": explanation_steps,
+                "answer": result
+            }
+            
+            return final_response
         
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
