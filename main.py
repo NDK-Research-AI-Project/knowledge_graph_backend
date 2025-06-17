@@ -98,14 +98,15 @@ def get_answer():
         logger.info(f"Saved user question to session {session_id}")
 
         # Generate answer using the knowledge graph
-        answer = answer_generator.generate_answer(question)
+        reponse = answer_generator.generate_answer(question)
         
         # Save LLM response to database
-        assistant_message = save_chat_message(session_id, 'assistant', str(answer))
+        assistant_message = save_chat_message(session_id, 'assistant', str(reponse["answer"]), reponse["explanation"])
         logger.info(f"Saved LLM response to session {session_id}")
         
         return jsonify({
-            "answer": str(answer),
+            "answer": str(reponse["answer"]),
+            "explanation": reponse["explanation"],
             "session_id": session_id  # Return session_id to frontend
         })
     except Exception as e:
@@ -133,18 +134,21 @@ def chat_with_knowledge_graph(session_id):
         user_message = save_chat_message(session_id, 'user', question)
         
         # Generate answer using the knowledge graph
-        answer = answer_generator.generate_answer(question)
+        response = answer_generator.generate_answer(question)
+
+        logger.info(f"Generated answer for session {session_id}: {response}")
         
         # Save LLM response to database
-        assistant_message = save_chat_message(session_id, 'assistant', str(answer))
+        assistant_message = save_chat_message(session_id, 'assistant', str(response["answer"]), response["explanation"])
         
         logger.info(f"Processed chat query for session {session_id}")
         
         return jsonify({
-            "answer": str(answer),
+            "answer": str(response["answer"]),
             "session_id": session_id,
             "user_message": serialize_message(user_message),
-            "assistant_message": serialize_message(assistant_message)
+            "assistant_message": serialize_message(assistant_message),
+            "explanation": response["explanation"]
         }), 200
         
     except Exception as e:
@@ -152,63 +156,13 @@ def chat_with_knowledge_graph(session_id):
         return jsonify({"error": str(e)}), 500
 
 
-# New endpoint: add glossary items
-@app.route('/api/glossary/add', methods=['POST'])
-def add_glossary():
-    data = request.get_json()
-    if not isinstance(data, list):
-        return jsonify({"error": "Expected a list of glossary items."}), 400
-    try:
-        result = glossary_handler.add_glossary_items(data)
-        return jsonify(result), 200
-    except Exception as e:
-        logger.error(f"Error adding glossary items: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-# New endpoint: get all glossary items
-@app.route('/api/glossary/list', methods=['GET'])
-def list_glossary():
-    try:
-        items = glossary_handler.get_all_glossary_items()
-        return jsonify(items), 200
-    except Exception as e:
-        logger.error(f"Error retrieving glossary items: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/glossary/update/<item_id>', methods=['PATCH'])
-def update_glossary(item_id):
-    data = request.get_json()
-    if not data or not isinstance(data, dict):
-        return jsonify({"error": "Expected a JSON object with update data."}), 400
-    try:
-        result = glossary_handler.update_glossary_item(item_id, data)
-        if "error" in result:
-            return jsonify(result), 400
-        return jsonify(result), 200
-    except Exception as e:
-        logger.error(f"Error updating glossary item: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/glossary/delete/<item_id>', methods=['DELETE'])
-def delete_glossary(item_id):
-    try:
-        result = glossary_handler.delete_glossary_item(item_id)
-        if "error" in result:
-            return jsonify(result), 400
-        return jsonify(result), 200
-    except Exception as e:
-        logger.error(f"Error deleting glossary item: {e}")
-        return jsonify({"error": str(e)}), 500
-    
+  
 
 # Chat functionality setup
 chat_collection = storage_service.chat_collection
 datetime = storage_service.datetime
 
-def save_chat_message(session_id, role, content):
+def save_chat_message(session_id, role, answer, explanation = []):
     """
     Utility function to save a chat message to the database.
     
@@ -223,7 +177,8 @@ def save_chat_message(session_id, role, content):
     message = {
         'session_id': session_id,
         'role': role,
-        'content': content,
+        'content': answer,
+        'explanation': explanation,
         'timestamp': datetime.utcnow()
     }
     result = chat_collection.insert_one(message)
@@ -235,7 +190,8 @@ serialize_message = lambda msg: {
     'session_id': msg['session_id'],
     'role': msg['role'],
     'content': msg['content'],
-    'timestamp': msg['timestamp'].isoformat() if isinstance(msg['timestamp'], datetime) else msg['timestamp']
+    'timestamp': msg['timestamp'].isoformat() if isinstance(msg['timestamp'], datetime) else msg['timestamp'],
+    'explanation': msg["explanation"]
 }
 
 # Endpoint to list chat sessions
@@ -252,7 +208,9 @@ def list_chat_sessions():
                 '$group': {
                     '_id': '$session_id',
                     'last_message_time': {'$max': '$timestamp'},
-                    'message_count': {'$sum': 1}
+                    'message_count': {'$sum': 1},
+                    'first_user_message': {'$first': {'$cond': [{'$eq': ['$role', 'user']}, '$content', None]}},
+                    'last_message': {'$last': '$content'}
                 }
             },
             {
@@ -268,10 +226,15 @@ def list_chat_sessions():
         # Format the response
         formatted_sessions = []
         for session in sessions:
+            # Generate topic suggestion from first user message or last message
+            topic = generate_topic_suggestion(session.get('first_user_message') or session.get('last_message', ''))
+            
             formatted_sessions.append({
                 'session_id': session['_id'],
                 'last_message_time': session['last_message_time'].isoformat() if isinstance(session['last_message_time'], datetime) else session['last_message_time'],
-                'message_count': session['message_count']
+                'message_count': session['message_count'],
+                'suggested_topic': topic,
+                'preview': truncate_text(session.get('last_message', ''), 100)
             })
         
         return jsonify({
@@ -282,6 +245,51 @@ def list_chat_sessions():
     except Exception as e:
         logger.error(f"Error listing chat sessions: {e}")
         return jsonify({'error': f'Error listing chat sessions: {str(e)}'}), 500
+
+def generate_topic_suggestion(message):
+    """
+    Generate a topic suggestion based on the message content.
+    """
+    if not message:
+        return "New Chat"
+    
+    # Simple keyword-based topic generation
+    message_lower = message.lower()
+    
+    # Define topic keywords
+    topic_keywords = {
+        "Technical Support": ["error", "bug", "issue", "problem", "fix", "troubleshoot"],
+        "Data Analysis": ["data", "analysis", "chart", "graph", "statistics", "metrics"],
+        "Knowledge Query": ["what is", "how to", "explain", "define", "meaning"],
+        "Document Processing": ["pdf", "document", "file", "upload", "process"],
+        "API Integration": ["api", "endpoint", "request", "response", "integration"],
+        "Database": ["database", "query", "mongodb", "neo4j", "collection"],
+        "Configuration": ["config", "setup", "install", "configure", "environment"]
+    }
+    
+    # Check for keyword matches
+    for topic, keywords in topic_keywords.items():
+        if any(keyword in message_lower for keyword in keywords):
+            return topic
+    
+    # Extract first few meaningful words as fallback
+    words = message.split()[:3]
+    if words:
+        return " ".join(words).title()
+    
+    return "General Discussion"
+
+def truncate_text(text, max_length=100):
+    """
+    Truncate text to specified length with ellipsis.
+    """
+    if not text:
+        return ""
+    
+    if len(text) <= max_length:
+        return text
+    
+    return text[:max_length].rsplit(' ', 1)[0] + "..."
 
 
 # Endpoint to create a new chat session
@@ -351,6 +359,7 @@ def get_history(session_id):
     messages = [serialize_message(msg) for msg in cursor]
     return jsonify(messages), 200
 
+
 # Endpoint to delete chat history for a specific session
 @app.route('/api/chat/<string:session_id>', methods=['DELETE'])
 def delete_history(session_id):
@@ -358,7 +367,57 @@ def delete_history(session_id):
     return jsonify({'deleted_count': result.deleted_count}), 200
 
 
+# New endpoint: add glossary items
+@app.route('/api/glossary/add', methods=['POST'])
+def add_glossary():
+    data = request.get_json()
+    if not isinstance(data, list):
+        return jsonify({"error": "Expected a list of glossary items."}), 400
+    try:
+        result = glossary_handler.add_glossary_items(data)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error adding glossary items: {e}")
+        return jsonify({"error": str(e)}), 500
 
+
+# New endpoint: get all glossary items
+@app.route('/api/glossary/list', methods=['GET'])
+def list_glossary():
+    try:
+        items = glossary_handler.get_all_glossary_items()
+        return jsonify(items), 200
+    except Exception as e:
+        logger.error(f"Error retrieving glossary items: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/glossary/update/<item_id>', methods=['PATCH'])
+def update_glossary(item_id):
+    data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Expected a JSON object with update data."}), 400
+    try:
+        result = glossary_handler.update_glossary_item(item_id, data)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error updating glossary item: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/glossary/delete/<item_id>', methods=['DELETE'])
+def delete_glossary(item_id):
+    try:
+        result = glossary_handler.delete_glossary_item(item_id)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error deleting glossary item: {e}")
+        return jsonify({"error": str(e)}), 500
+  
 
 if __name__ == "__main__":
     app.run(debug=True)
