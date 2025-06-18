@@ -15,20 +15,19 @@ class Config:
     def __init__(self):
 
         # Correct Neo4j
-        # self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://9d3d116e.databases.neo4j.io")
-        # self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
-        # self.neo4j_password = os.getenv("NEO4J_PASSWORD", "MTmhQ8kiaRqRltgDThU_4hYE-aCCpIVk5aNmcUnKWKU")
-
-        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://c95a3680.databases.neo4j.io")
+        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://9d3d116e.databases.neo4j.io")
         self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
-        self.neo4j_password = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
+        self.neo4j_password = os.getenv("NEO4J_PASSWORD", "MTmhQ8kiaRqRltgDThU_4hYE-aCCpIVk5aNmcUnKWKU")
+
+        # self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://c95a3680.databases.neo4j.io")
+        # self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
+        # self.neo4j_password = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
 
         self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
         self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
 
-        #self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
-
+        #self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:        
         self.chat_template = os.getenv("CHAT_TEMPLATE", 
         """
         You are an expert assistant specialized in answering clinical research questions using only the given information.                         
@@ -41,13 +40,14 @@ class Config:
         User Question: {question}
 
         Instructions:
-        1. Understand the question and context using the glossary definitions—do not copy or repeat glossary content in the answer.
-        2. Answer strictly using information from the context. Do not rely on external or general medical knowledge.
-        3. If the glossary is empty or not useful, proceed with context alone.
-        4. If the question is ambiguous or unclear after applying glossary help, respond with:  
+        1. If the user's message is a greeting (like "Hi", "Hello", "Hey", etc.) or general conversation starter, respond in a friendly way and briefly explain what you can help with. For example: "Hello! I'm your clinical research assistant. I can help answer questions based on the information in my knowledge base. What would you like to know about?"
+        2. Understand the question and context using the glossary definitions—do not copy or repeat glossary content in the answer.
+        3. Answer strictly using information from the context. Do not rely on external or general medical knowledge.
+        4. If the glossary is empty or not useful, proceed with context alone.
+        5. If the question is ambiguous or unclear after applying glossary help, respond with:
         "I'm sorry, I didn't understand your question. Could you please rephrase it?"
-        5. Provide a clear and concise answer. Avoid explanations, reasoning steps, or rephrasing the question.
-        6. Only include relevant facts from the context. Disregard unrelated information.
+        6. Provide a clear and concise answer. Avoid explanations, reasoning steps, or rephrasing the question.
+        7. Only include relevant facts from the context. Disregard unrelated information.
 
         Answer:""")
 
