@@ -15,7 +15,7 @@ class Config:
     def __init__(self):
 
         # Correct Neo4j
-        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://9d3d116e.databases.neo4j.io")
+        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+ssc://9d3d116e.databases.neo4j.io")
         self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
         self.neo4j_password = os.getenv("NEO4J_PASSWORD", "MTmhQ8kiaRqRltgDThU_4hYE-aCCpIVk5aNmcUnKWKU")
 
@@ -25,7 +25,13 @@ class Config:
 
         self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        # self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        
+        # Guardrail configuration using Llama-Guard
+        self.guardrail_enabled = os.getenv("GUARDRAIL_ENABLED", "True").lower() == "true"
+        self.guardrail_model = os.getenv("GUARDRAIL_MODEL", "meta-llama/Llama-Guard-4-12B")
+        self.guardrail_api_base = os.getenv("GUARDRAIL_API_BASE", "https://api.deepinfra.com/v1/inference")
 
         #self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:        
         self.chat_template = os.getenv("CHAT_TEMPLATE", 
@@ -106,4 +112,3 @@ class Config:
         self.azure_container_name = os.getenv("CONTAINER_NAME", "blobpdfcontainer")
 
 
-    

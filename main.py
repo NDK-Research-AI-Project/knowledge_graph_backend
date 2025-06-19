@@ -5,6 +5,7 @@ from io import BytesIO
 
 from src.handlers.glossary_handler import GlossaryHandler
 from src.handlers.knowledge_graph_handler import KnowledgeGraphHandler
+from src.handlers.guardrail_handler import GuardrailHandler
 from src.services.storage_service import StorageService
 from src.generators.answer_generator import AnswerGenerator
 
@@ -19,6 +20,7 @@ logger = setup_logging(config.logging_config)
 storage_service = StorageService()
 glossary_handler = GlossaryHandler()
 answer_generator = AnswerGenerator(config)
+guardrail_handler = GuardrailHandler(config)
 
 app = Flask(__name__)
 
@@ -93,6 +95,16 @@ def get_answer():
         logger.info(f"Created new session for query: {session_id}")
 
     try:
+        # Apply guardrail to check the safety of the user query
+        is_safe, reason = guardrail_handler.is_safe_query(question)
+        
+        if not is_safe:
+            logger.warning(f"Blocked unsafe query: {question}. Reason: {reason}")
+            return jsonify({
+                "error": "Your query was flagged by our safety system and cannot be processed.",
+                "details": reason
+            }), 403
+            
         # Save user question to database
         user_message = save_chat_message(session_id, 'user', question)
         logger.info(f"Saved user question to session {session_id}")
@@ -130,6 +142,16 @@ def chat_with_knowledge_graph(session_id):
     question = data['question']
 
     try:
+        # Apply guardrail to check the safety of the user query
+        is_safe, reason = guardrail_handler.is_safe_query(question)
+        
+        if not is_safe:
+            logger.warning(f"Blocked unsafe query in chat: {question}. Reason: {reason}")
+            return jsonify({
+                "error": "Your message was flagged by our safety system and cannot be processed.",
+                "details": reason
+            }), 403
+        
         # Save user question to database
         user_message = save_chat_message(session_id, 'user', question)
         

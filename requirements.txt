@@ -17,3 +17,4 @@ flask_cors
 pymongo
 rapidfuzz 
 pandas
+requests
