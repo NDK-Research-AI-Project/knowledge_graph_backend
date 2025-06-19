@@ -1,0 +1,16 @@
+[run]
+source = src
+omit = 
+    # Standard omissions
+    */site-packages/*
+    */__pycache__/*
+    */tests/*
+    */__init__.py
+
+[report]
+# Show missing lines in report
+show_missing = True
+
+[html]
+# Specify directory for HTML report
+directory = coverage_html_report
