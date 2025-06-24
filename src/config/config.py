@@ -19,13 +19,15 @@ class Config:
         # self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
         # self.neo4j_password = os.getenv("NEO4J_PASSWORD", "MTmhQ8kiaRqRltgDThU_4hYE-aCCpIVk5aNmcUnKWKU")
 
-        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://")
+        self.neo4j_uri = os.getenv("NEO4J_URI", "neo4j+s://c95a3680.databases.neo4j.io")
         self.neo4j_username = os.getenv("NEO4J_USERNAME", "neo4j")
-        self.neo4j_password = os.getenv("NEO4J_PASSWORD", "")
+        self.neo4j_password = os.getenv("NEO4J_PASSWORD", "5SYecqiUcLZz4pzO9CDdGs9jlU5rOKUQ6ddtK6DEl1o")
 
-        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "")
+        self.deepinfra_api_token = os.getenv("DEEPINFRA_API_TOKEN", "YuGM4YMWqQU4kVM0u47Ntev9gUjFv2Om")
 
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "")
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "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")
+
+        #self.chat_template = os.getenv("CHAT_TEMPLATE", """Answer the question based only on the following context:
 
         self.chat_template = os.getenv("CHAT_TEMPLATE", 
         """
@@ -88,16 +90,16 @@ class Config:
         # MongoDB
         self.mongo_uri = os.getenv("MONGO_URI", "mongodb+srv://kavindamadhuranga74:fLaa4T079luktEQv@cluster0.xkdqxqw.mongodb.net/?appName=Cluster0")
         # self.mongo_glossary_db = os.getenv("GlossaryDB", "your_ai_db")
-        # self.mongo_glossary_collection = os.getenv("GlossaryCollection", "pdf_store")
-
-
+        # self.mongo_glossary_collection = os.getenv("GlossaryCollection", "pdf_store")       
         self.mongo_glossary_db = os.getenv("GlossaryDB", "glossary_database")
         self.mongo_glossary_collection = os.getenv("GlossaryCollection", "glossary_collection")
-
 
         self.mongo_metadata_db = os.getenv("METADATA_DB", "your_ai_db")
         self.mongo_metadata_collection = os.getenv("METADATA_COLLECTION", "pdf_store")
 
+        # Chat configuration
+        self.mongo_chat_db = os.getenv("CHAT_DB", "your_ai_db")
+        self.mongo_chat_collection = os.getenv("CHAT_COLLECTION", "chat_sessions")
 
         # Azure
         self.azure_connection_string = os.getenv("AZURE_CONNECTION_STRING", "DefaultEndpointsProtocol=https;AccountName=researchpdfstore;AccountKey=SQnY5MvTblA+bEu7bPw3orgeZhZzvg6jNTSF4c7yWCFsdk3cwWe5pqAPgPRGdCiwr2EIY/oKK8gR+AStFcG4WQ==;EndpointSuffix=core.windows.net")

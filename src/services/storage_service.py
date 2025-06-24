@@ -24,12 +24,17 @@ class StorageService:
             logger.info("Successfully connected to Azure storage container")
         except Exception as e:
             logger.error(f"Failed to connect to Azure storage container: {e}")
-            raise
-
-        # Mongo config
+            raise        # Mongo config
         self.mongo_client = MongoClient(config.mongo_uri)
         self.metadata_db = self.mongo_client[config.mongo_metadata_db]
         self.metadata_collection = self.metadata_db[config.mongo_metadata_collection]
+
+        # Chat collection setup
+        self.chat_db = self.mongo_client[config.mongo_chat_db]
+        self.chat_collection = self.chat_db[config.mongo_chat_collection]
+        
+        # For datetime reference in main.py
+        self.datetime = datetime
 
         try:
             logger.info("Connected to MongoDB")
